@@ -4,7 +4,7 @@ on:
     branches:
       - master
 jobs:
-  publish-tak-docker-image:
+  publish-orbito-docker-image:
     name: Publish Orbito Docker Image
     runs-on: ubuntu-latest
     steps:
@@ -24,7 +24,7 @@ jobs:
         run: yarn install
       - name: Build static files
         run: yarn build
-      - name: Build the Tak Docker image
+      - name: Build the Orbito Docker image
         run: |
           docker build . --tag ghcr.io/jbatch/orbito:latest
           docker push ghcr.io/jbatch/orbito:latest
