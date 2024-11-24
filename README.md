@@ -1,50 +1,87 @@
-# React + TypeScript + Vite
+# Orbito Game
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Orbito is a strategic board game where players compete to create lines of four pieces while navigating unique orbital movement patterns.
 
-Currently, two official plugins are available:
+## Game Rules
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Setup
 
-## Expanding the ESLint configuration
+- The game is played on a 4x4 board
+- Two players (Black and White) take turns
+- The board contains two orbital paths - an outer and inner orbit
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+### Turn Structure
 
-- Configure the top-level `parserOptions` property like this:
+Each player's turn consists of three phases:
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+1. **Move Opponent (Optional)**
+
+   - You may move one of your opponent's pieces to an adjacent empty space
+   - Movement can be horizontal or vertical (not diagonal)
+
+2. **Place Piece (Required)**
+
+   - Place one of your pieces on any empty space on the board
+
+3. **Rotate (Required)**
+   - At the end of your turn, all pieces on the board move along their orbital paths
+   - Pieces move according to their orbit (arrows)
+
+### Winning
+
+A player wins by creating a line (after rotation) of four pieces of their color in any of these ways:
+
+- Horizontally (along a row)
+- Vertically (along a column)
+- Diagonally (from corner to corner)
+
+## Technical Setup
+
+### Prerequisites
+
+- Node.js (v14 or higher)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone git@github.com:jbatch/orbito.git
+cd orbito
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+2. Install dependencies:
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+```bash
+npm install
+# or
+yarn install
+```
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+### Required Dependencies
+
+- React
+- Tailwind CSS
+- Lucide React (for icons)
+- TypeScript
+
+### Development
+
+Run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+### Building for Production
+
+Build the project:
+
+```bash
+npm run build
+# or
+yarn build
 ```
