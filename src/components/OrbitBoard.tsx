@@ -1,4 +1,3 @@
-// OrbitBoard.tsx
 import React from "react";
 import { OrbitCell } from "./OrbitCell";
 import { Board, Position, Direction, OrbitConfig } from "./types";
@@ -9,6 +8,10 @@ interface OrbitBoardProps {
   isValidMove: (row: number, col: number) => boolean;
   orbitConfig: OrbitConfig;
   onCellClick: (row: number, col: number) => void;
+  isLifted: boolean;
+  isRotating: boolean;
+  moveOffsets: Record<string, { top: number; left: number }>;
+  disableTransitions: boolean;
 }
 
 export const OrbitBoard: React.FC<OrbitBoardProps> = ({
@@ -17,6 +20,10 @@ export const OrbitBoard: React.FC<OrbitBoardProps> = ({
   isValidMove,
   orbitConfig,
   onCellClick,
+  isLifted,
+  isRotating,
+  moveOffsets,
+  disableTransitions,
 }) => {
   const getArrowDirection = (
     row: number,
@@ -41,7 +48,7 @@ export const OrbitBoard: React.FC<OrbitBoardProps> = ({
 
   return (
     <div className="bg-red-600 p-8 rounded-lg shadow-lg">
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-4 relative">
         {board.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
             <OrbitCell
@@ -54,6 +61,9 @@ export const OrbitBoard: React.FC<OrbitBoardProps> = ({
               isValidMove={isValidMove(rowIndex, colIndex)}
               arrowDirection={getArrowDirection(rowIndex, colIndex)}
               onClick={() => onCellClick(rowIndex, colIndex)}
+              isLifted={isLifted && cell !== null}
+              moveOffset={moveOffsets[`${rowIndex},${colIndex}`]}
+              disableTransition={disableTransitions}
             />
           ))
         )}

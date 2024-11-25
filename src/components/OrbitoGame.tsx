@@ -5,6 +5,9 @@ import { RotateCcw } from "lucide-react";
 import { OrbitBoard } from "./OrbitBoard";
 import { OrbitConfigValidator } from "./configValidator";
 
+const CELL_SIZE = 64; // 16 * 4 (w-16)
+const GAP_SIZE = 16; // gap-4
+
 const OrbitoGame: React.FC = () => {
   const [currentConfig, setCurrentConfig] = useState<OrbitConfig>(
     availableConfigs[0]
@@ -16,7 +19,13 @@ const OrbitoGame: React.FC = () => {
   const [currentPlayer, setCurrentPlayer] = useState<Player>("BLACK");
   const [winner, setWinner] = useState<Player | null>(null);
   const [selectedPiece, setSelectedPiece] = useState<Position>(null);
-  const [turnPhase, setTurnPhase] = useState<TurnPhase>("MOVE_OPPONENT");
+  const [turnPhase, setTurnPhase] = useState<TurnPhase>("PLACE_PIECE");
+  const [isRotating, setIsRotating] = useState(false);
+  const [isLifted, setIsLifted] = useState(false);
+  const [moveOffsets, setMoveOffsets] = useState<
+    Record<string, { top: number; left: number }>
+  >({});
+  const [disableTransitions, setDisableTransitions] = useState(false);
 
   useEffect(() => {
     // Validate all configurations when the game loads
@@ -39,9 +48,42 @@ const OrbitoGame: React.FC = () => {
     });
   }, []);
 
-  const rotateBoard = () => {
-    const newBoard = board.map((row) => [...row]);
+  const calculateMoveOffsets = () => {
+    const offsets: Record<string, { top: number; left: number }> = {};
 
+    currentConfig.paths.forEach((path) => {
+      const [fromRow, fromCol] = path.position;
+      const [toRow, toCol] = path.nextPosition;
+
+      const topOffset = (toRow - fromRow) * (CELL_SIZE + GAP_SIZE);
+      const leftOffset = (toCol - fromCol) * (CELL_SIZE + GAP_SIZE);
+
+      offsets[`${fromRow},${fromCol}`] = { top: topOffset, left: leftOffset };
+    });
+
+    return offsets;
+  };
+
+  const rotateBoard = async () => {
+    if (isRotating) return;
+
+    setIsRotating(true);
+
+    // First phase: lift all pieces
+    setIsLifted(true);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Second phase: calculate and apply movement offsets
+    setMoveOffsets(calculateMoveOffsets());
+
+    // Wait for the movement animation
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Disable transitions before state update
+    setDisableTransitions(true);
+
+    // Third phase: update board state and reset offsets
+    const newBoard = board.map((row) => [...row]);
     currentConfig.paths.forEach((path) => {
       const [fromRow, fromCol] = path.position;
       const [toRow, toCol] = path.nextPosition;
@@ -49,7 +91,24 @@ const OrbitoGame: React.FC = () => {
     });
 
     setBoard(newBoard);
+    setMoveOffsets({});
+
+    // Wait a frame to ensure the state updates are processed
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    // Re-enable transitions
+    setDisableTransitions(false);
+
+    // Fourth phase: lower pieces
+    setIsLifted(false);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // Complete rotation
+    setIsRotating(false);
     checkWinner(newBoard);
+    setCurrentPlayer(currentPlayer === "BLACK" ? "WHITE" : "BLACK");
+    setTurnPhase("MOVE_OPPONENT");
+    setSelectedPiece(null);
   };
 
   const checkWinner = (currentBoard: Board) => {
@@ -192,8 +251,8 @@ const OrbitoGame: React.FC = () => {
   };
 
   const handleRotate = () => {
-    if (turnPhase !== "MUST_ROTATE") {
-      return; // Can't rotate until a piece has been placed
+    if (turnPhase !== "MUST_ROTATE" || isRotating) {
+      return;
     }
 
     rotateBoard();
@@ -246,6 +305,10 @@ const OrbitoGame: React.FC = () => {
           isValidMove={isValidMove}
           orbitConfig={currentConfig}
           onCellClick={handleCellClick}
+          isLifted={isLifted}
+          isRotating={isRotating}
+          moveOffsets={moveOffsets}
+          disableTransitions={disableTransitions}
         />
 
         <button
@@ -254,12 +317,12 @@ const OrbitoGame: React.FC = () => {
                      flex items-center justify-center
                      transition-colors focus:outline-none shadow-lg
                      ${
-                       turnPhase === "MUST_ROTATE"
-                         ? "bg-red-600 hover:bg-red-700 cursor-pointer"
+                       turnPhase === "MUST_ROTATE" && !isRotating
+                         ? "ring-2 ring-blue-300 bg-blue-600 hover:bg-blue-700 cursor-pointer"
                          : "bg-gray-400 cursor-not-allowed"
                      }`}
           onClick={handleRotate}
-          disabled={turnPhase !== "MUST_ROTATE"}
+          disabled={turnPhase !== "MUST_ROTATE" || isRotating}
         >
           <RotateCcw className="text-black" size={24} />
         </button>
