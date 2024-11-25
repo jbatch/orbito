@@ -9,7 +9,6 @@ interface OrbitBoardProps {
   orbitConfig: OrbitConfig;
   onCellClick: (row: number, col: number) => void;
   isLifted: boolean;
-  isRotating: boolean;
   moveOffsets: Record<string, { top: number; left: number }>;
   disableTransitions: boolean;
 }
@@ -21,7 +20,6 @@ export const OrbitBoard: React.FC<OrbitBoardProps> = ({
   orbitConfig,
   onCellClick,
   isLifted,
-  isRotating,
   moveOffsets,
   disableTransitions,
 }) => {

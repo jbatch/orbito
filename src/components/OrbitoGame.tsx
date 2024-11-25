@@ -4,6 +4,7 @@ import { Player, Board, Position, OrbitConfig, TurnPhase } from "./types";
 import { RotateCcw } from "lucide-react";
 import { OrbitBoard } from "./OrbitBoard";
 import { OrbitConfigValidator } from "./configValidator";
+import RoomBrowser from "./RoomBrowser";
 
 const CELL_SIZE = 64; // 16 * 4 (w-16)
 const GAP_SIZE = 16; // gap-4
@@ -275,7 +276,7 @@ const OrbitoGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="mb-4">
+      <div className="mb-4 flex items-center gap-4">
         <select
           className="p-2 border rounded"
           value={currentConfig.name}
@@ -292,6 +293,10 @@ const OrbitoGame: React.FC = () => {
             </option>
           ))}
         </select>
+        <RoomBrowser
+          currentConfig={currentConfig}
+          onConfigChange={(config) => setCurrentConfig(config)}
+        />
       </div>
 
       <div className="mb-4 text-xl font-bold text-center">
@@ -306,7 +311,6 @@ const OrbitoGame: React.FC = () => {
           orbitConfig={currentConfig}
           onCellClick={handleCellClick}
           isLifted={isLifted}
-          isRotating={isRotating}
           moveOffsets={moveOffsets}
           disableTransitions={disableTransitions}
         />
