@@ -1,277 +1,36 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { availableConfigs } from "./orbitConfig";
-import { Player, Board, Position, OrbitConfig, TurnPhase } from "./types";
 import { RotateCcw } from "lucide-react";
 import { OrbitBoard } from "./OrbitBoard";
-import { OrbitConfigValidator } from "./configValidator";
 import RoomBrowser from "./RoomBrowser";
+import { useGame } from "./GameContext";
 import { useNetwork } from "./NetworkContext";
-
-const CELL_SIZE = 64; // 16 * 4 (w-16)
-const GAP_SIZE = 16; // gap-4
 
 const OrbitoGame: React.FC = () => {
   const {
-    isConnected,
-    currentRoom,
-    isHost,
-    localPlayer,
-    isMultiplayer,
-    gameStarted,
-    remoteGameState,
-    sendGameState,
-    sendConfigChange,
-  } = useNetwork();
-  const [currentConfig, setCurrentConfig] = useState<OrbitConfig>(
-    availableConfigs[0]
-  );
-  const initialBoard: Board = Array(4)
-    .fill(null)
-    .map(() => Array(4).fill(null));
-  const [board, setBoard] = useState<Board>(initialBoard);
-  const [currentPlayer, setCurrentPlayer] = useState<Player>("BLACK");
-  const [winner, setWinner] = useState<Player | null>(null);
-  const [selectedPiece, setSelectedPiece] = useState<Position>(null);
-  const [turnPhase, setTurnPhase] = useState<TurnPhase>("PLACE_PIECE");
-  const [isRotating, setIsRotating] = useState(false);
-  const [isLifted, setIsLifted] = useState(false);
-  const [moveOffsets, setMoveOffsets] = useState<
-    Record<string, { top: number; left: number }>
-  >({});
-  const [disableTransitions, setDisableTransitions] = useState(false);
+    board,
+    currentPlayer,
+    winner,
+    selectedPiece,
+    turnPhase,
+    currentConfig,
+    isRotating,
+    isLifted,
+    moveOffsets,
+    disableTransitions,
+    dispatch,
+    isValidMove,
+    handleCellClick,
+    handleRotate,
+  } = useGame();
 
-  useEffect(() => {
-    // Validate all configurations when the game loads
-    availableConfigs.forEach((config) => {
-      const basicValidation = OrbitConfigValidator.validateConfig(config);
-      const cycleValidation = OrbitConfigValidator.validateOrbitCycles(config);
+  const { isMultiplayer, sendConfigChange } = useNetwork();
 
-      if (!basicValidation.isValid) {
-        console.error(
-          `Configuration ${config.name} failed basic validation:`,
-          basicValidation.errors
-        );
-      }
-      if (!cycleValidation.isValid) {
-        console.error(
-          `Configuration ${config.name} failed cycle validation:`,
-          cycleValidation.errors
-        );
-      }
-    });
-  }, []);
-
-  const calculateMoveOffsets = () => {
-    const offsets: Record<string, { top: number; left: number }> = {};
-
-    currentConfig.paths.forEach((path) => {
-      const [fromRow, fromCol] = path.position;
-      const [toRow, toCol] = path.nextPosition;
-
-      const topOffset = (toRow - fromRow) * (CELL_SIZE + GAP_SIZE);
-      const leftOffset = (toCol - fromCol) * (CELL_SIZE + GAP_SIZE);
-
-      offsets[`${fromRow},${fromCol}`] = { top: topOffset, left: leftOffset };
-    });
-
-    return offsets;
-  };
-
-  const rotateBoard = async () => {
-    if (isRotating) return;
-
-    setIsRotating(true);
-
-    // First phase: lift all pieces
-    setIsLifted(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // Second phase: calculate and apply movement offsets
-    setMoveOffsets(calculateMoveOffsets());
-
-    // Wait for the movement animation
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // Disable transitions before state update
-    setDisableTransitions(true);
-
-    // Third phase: update board state and reset offsets
-    const newBoard = board.map((row) => [...row]);
-    currentConfig.paths.forEach((path) => {
-      const [fromRow, fromCol] = path.position;
-      const [toRow, toCol] = path.nextPosition;
-      newBoard[toRow][toCol] = board[fromRow][fromCol];
-    });
-
-    setBoard(newBoard);
-    setMoveOffsets({});
-
-    // Wait a frame to ensure the state updates are processed
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-
-    // Re-enable transitions
-    setDisableTransitions(false);
-
-    // Fourth phase: lower pieces
-    setIsLifted(false);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    // Complete rotation
-    setIsRotating(false);
-    checkWinner(newBoard);
-    setCurrentPlayer(currentPlayer === "BLACK" ? "WHITE" : "BLACK");
-    setTurnPhase("MOVE_OPPONENT");
-    setSelectedPiece(null);
-  };
-
-  const checkWinner = (currentBoard: Board) => {
-    // Check rows and columns
-    for (let i = 0; i < 4; i++) {
-      // Check rows
-      if (
-        currentBoard[i][0] !== null &&
-        currentBoard[i][0] === currentBoard[i][1] &&
-        currentBoard[i][1] === currentBoard[i][2] &&
-        currentBoard[i][2] === currentBoard[i][3]
-      ) {
-        setWinner(currentBoard[i][0]);
-        return;
-      }
-      // Check columns
-      if (
-        currentBoard[0][i] !== null &&
-        currentBoard[0][i] === currentBoard[1][i] &&
-        currentBoard[1][i] === currentBoard[2][i] &&
-        currentBoard[2][i] === currentBoard[3][i]
-      ) {
-        setWinner(currentBoard[0][i]);
-        return;
-      }
+  const handleConfigChange = (newConfig: typeof currentConfig) => {
+    dispatch({ type: "SET_CONFIG", config: newConfig });
+    if (isMultiplayer) {
+      sendConfigChange(newConfig);
     }
-
-    // Check diagonals
-    if (
-      currentBoard[0][0] !== null &&
-      currentBoard[0][0] === currentBoard[1][1] &&
-      currentBoard[1][1] === currentBoard[2][2] &&
-      currentBoard[2][2] === currentBoard[3][3]
-    ) {
-      setWinner(currentBoard[0][0]);
-      return;
-    }
-
-    if (
-      currentBoard[0][3] !== null &&
-      currentBoard[0][3] === currentBoard[1][2] &&
-      currentBoard[1][2] === currentBoard[2][1] &&
-      currentBoard[2][1] === currentBoard[3][0]
-    ) {
-      setWinner(currentBoard[0][3]);
-      return;
-    }
-  };
-
-  const getValidMoves = (row: number, col: number): Position[] => {
-    const moves: Position[] = [];
-    const directions = [
-      [-1, 0],
-      [1, 0],
-      [0, -1],
-      [0, 1],
-    ]; // up, down, left, right
-
-    for (const [dx, dy] of directions) {
-      const newRow = row + dx;
-      const newCol = col + dy;
-      if (
-        newRow >= 0 &&
-        newRow < 4 &&
-        newCol >= 0 &&
-        newCol < 4 &&
-        board[newRow][newCol] === null
-      ) {
-        moves.push([newRow, newCol]);
-      }
-    }
-
-    return moves;
-  };
-
-  const isValidMove = (row: number, col: number): boolean => {
-    if (!selectedPiece) return false;
-    return getValidMoves(selectedPiece[0], selectedPiece[1]).some(
-      (position) => position![0] === row && position![1] === col
-    );
-  };
-
-  const handleCellClick = (row: number, col: number) => {
-    if (winner) return;
-
-    if (turnPhase === "MUST_ROTATE") {
-      return; // No more moves allowed until rotation
-    }
-
-    if (turnPhase === "MOVE_OPPONENT") {
-      // If clicking on opponent's piece
-      if (board[row][col] === (currentPlayer === "BLACK" ? "WHITE" : "BLACK")) {
-        if (
-          selectedPiece &&
-          selectedPiece[0] === row &&
-          selectedPiece[1] === col
-        ) {
-          // Unselect if clicking the same piece
-          setSelectedPiece(null);
-        } else {
-          // Select new piece
-          setSelectedPiece([row, col]);
-        }
-        return;
-      }
-
-      // If we have a selected piece and clicking on a valid move location
-      if (selectedPiece && isValidMove(row, col)) {
-        const newBoard = board.map((r) => [...r]);
-        newBoard[row][col] = board[selectedPiece[0]][selectedPiece[1]];
-        newBoard[selectedPiece[0]][selectedPiece[1]] = null;
-        setBoard(newBoard);
-        setSelectedPiece(null);
-        setTurnPhase("PLACE_PIECE");
-        return;
-      }
-
-      // If clicking an empty space without moving opponent's piece,
-      // directly place the piece and move to MUST_ROTATE
-      if (board[row][col] === null && !selectedPiece) {
-        const newBoard = board.map((r) => [...r]);
-        newBoard[row][col] = currentPlayer;
-        setBoard(newBoard);
-        setSelectedPiece(null);
-        setTurnPhase("MUST_ROTATE");
-        return;
-      }
-    }
-
-    if (turnPhase === "PLACE_PIECE") {
-      // Only allow placing a piece in an empty cell
-      if (board[row][col] === null) {
-        const newBoard = board.map((r) => [...r]);
-        newBoard[row][col] = currentPlayer;
-        setBoard(newBoard);
-        setSelectedPiece(null);
-        setTurnPhase("MUST_ROTATE");
-      }
-    }
-  };
-
-  const handleRotate = () => {
-    if (turnPhase !== "MUST_ROTATE" || isRotating) {
-      return;
-    }
-
-    rotateBoard();
-    setCurrentPlayer(currentPlayer === "BLACK" ? "WHITE" : "BLACK");
-    setTurnPhase("MOVE_OPPONENT");
-    setSelectedPiece(null);
   };
 
   const getStatusMessage = () => {
@@ -296,7 +55,7 @@ const OrbitoGame: React.FC = () => {
             const newConfig = availableConfigs.find(
               (c) => c.name === e.target.value
             );
-            if (newConfig) setCurrentConfig(newConfig);
+            if (newConfig) handleConfigChange(newConfig);
           }}
         >
           {availableConfigs.map((config) => (
@@ -307,12 +66,11 @@ const OrbitoGame: React.FC = () => {
         </select>
         <RoomBrowser
           currentConfig={currentConfig}
-          onConfigChange={(config) => setCurrentConfig(config)}
+          onConfigChange={handleConfigChange}
         />
       </div>
 
       <div className="mb-4 text-xl font-bold text-center">
-        <div>{}</div>
         <div>{getStatusMessage()}</div>
       </div>
 
@@ -338,7 +96,7 @@ const OrbitoGame: React.FC = () => {
                          ? "ring-2 ring-blue-300 bg-blue-600 hover:bg-blue-700 cursor-pointer"
                          : "bg-gray-400 cursor-not-allowed"
                      }`}
-          onClick={handleRotate}
+          onClick={() => handleRotate()}
           disabled={turnPhase !== "MUST_ROTATE" || isRotating}
         >
           <RotateCcw className="text-black" size={24} />
