@@ -5,11 +5,23 @@ import { RotateCcw } from "lucide-react";
 import { OrbitBoard } from "./OrbitBoard";
 import { OrbitConfigValidator } from "./configValidator";
 import RoomBrowser from "./RoomBrowser";
+import { useNetwork } from "./NetworkContext";
 
 const CELL_SIZE = 64; // 16 * 4 (w-16)
 const GAP_SIZE = 16; // gap-4
 
 const OrbitoGame: React.FC = () => {
+  const {
+    isConnected,
+    currentRoom,
+    isHost,
+    localPlayer,
+    isMultiplayer,
+    gameStarted,
+    remoteGameState,
+    sendGameState,
+    sendConfigChange,
+  } = useNetwork();
   const [currentConfig, setCurrentConfig] = useState<OrbitConfig>(
     availableConfigs[0]
   );
@@ -300,6 +312,7 @@ const OrbitoGame: React.FC = () => {
       </div>
 
       <div className="mb-4 text-xl font-bold text-center">
+        <div>{}</div>
         <div>{getStatusMessage()}</div>
       </div>
 

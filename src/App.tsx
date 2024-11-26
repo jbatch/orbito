@@ -1,10 +1,13 @@
 import "./App.css";
+import { NetworkProvider } from "./components/NetworkContext";
 import OrbitoGame from "./components/OrbitoGame";
 
 function App() {
   return (
     <>
-      <OrbitoGame />
+      <NetworkProvider>
+        <OrbitoGame />
+      </NetworkProvider>
     </>
   );
 }

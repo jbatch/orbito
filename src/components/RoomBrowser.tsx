@@ -25,9 +25,9 @@ import {
 } from "@/components/ui/card";
 import { Loader2, RefreshCw, Users, Copy, Check, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useSignaling } from "./useSignaling";
 import { availableConfigs } from "./orbitConfig";
 import { OrbitConfig } from "./types";
+import { useNetwork } from "./NetworkContext";
 
 const RoomBrowser = ({
   currentConfig,
@@ -43,15 +43,17 @@ const RoomBrowser = ({
 
   const {
     isConnected,
-    currentRoom,
-    availableRooms,
-    peers,
     socketId,
+    availableRooms,
+    currentRoom,
+    peers,
+    isHost,
     error,
     createRoom,
     joinRoom,
     listRooms,
-  } = useSignaling();
+    startGame,
+  } = useNetwork();
 
   useEffect(() => {
     if (isOpen && isConnected && !currentRoom) {
@@ -96,8 +98,8 @@ const RoomBrowser = ({
   };
 
   const handleStartGame = () => {
-    // TODO: Implement game start logic
     console.log("Starting game...");
+    startGame();
     setIsOpen(false);
   };
 
@@ -114,7 +116,6 @@ const RoomBrowser = ({
     </div>
   );
 
-  const isHost = socketId === peers[0];
   const canStartGame = peers.length === 2;
 
   return (
