@@ -121,12 +121,11 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
     listRooms: signalingListRooms,
   } = useSignaling();
 
-  const {
-    state: webRTCState,
-    startConnection,
-    sendMessage,
-    addMessageHandler,
-  } = useWebRTC(socket, currentRoom, peers);
+  const { startConnection, sendMessage, addMessageHandler } = useWebRTC(
+    socket,
+    currentRoom,
+    peers
+  );
 
   // Update state when signaling connection changes
   useEffect(() => {
@@ -170,7 +169,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Set up message handler
   useEffect(() => {
-    const cleanup = addMessageHandler((peerId: string, message: Message) => {
+    const cleanup = addMessageHandler((_peerId: string, message: Message) => {
       const isGameMessage = (msg: Message): msg is GameMessage => {
         return ["game-state", "config-change", "start-game"].includes(msg.type);
       };
@@ -285,6 +284,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
 };
 
 // Hook for using the context
+// eslint-disable-next-line react-refresh/only-export-components
 export function useNetwork() {
   const context = useContext(NetworkContext);
   if (!context) {

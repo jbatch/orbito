@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -55,11 +55,17 @@ const RoomBrowser = ({
     startGame,
   } = useNetwork();
 
+  const handleRefresh = useCallback(async () => {
+    setIsLoading(true);
+    await listRooms();
+    setIsLoading(false);
+  }, [listRooms]);
+
   useEffect(() => {
     if (isOpen && isConnected && !currentRoom) {
       handleRefresh();
     }
-  }, [isOpen, isConnected, currentRoom]);
+  }, [isOpen, isConnected, currentRoom, handleRefresh]);
 
   useEffect(() => {
     if (error) {
@@ -70,12 +76,6 @@ const RoomBrowser = ({
       });
     }
   }, [error, toast]);
-
-  const handleRefresh = async () => {
-    setIsLoading(true);
-    await listRooms();
-    setIsLoading(false);
-  };
 
   const handleJoinRoom = async (roomId: string) => {
     setIsLoading(true);
