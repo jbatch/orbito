@@ -18,3 +18,17 @@ export interface OrbitConfigValidationResult {
   isValid: boolean;
   errors: string[];
 }
+
+export interface GameState {
+  board: Board;
+  currentPlayer: Player;
+  turnPhase: TurnPhase;
+  selectedPiece: Position;
+  winner: Player | null;
+  currentConfig: OrbitConfig;
+  isRotating: boolean;
+  isLifted: boolean;
+  moveOffsets: Record<string, { top: number; left: number }>;
+  disableTransitions: boolean;
+  sequence: number;
+}

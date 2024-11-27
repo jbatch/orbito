@@ -10,6 +10,7 @@ interface GameState {
   turnPhase: TurnPhase;
   selectedPiece: Position;
   winner: Player | null;
+  sequence: number;
 }
 
 interface NetworkState {
@@ -36,7 +37,7 @@ type NetworkAction =
 
 interface GameStateMessage extends Message {
   type: "game-state";
-  payload: Partial<GameState>;
+  payload: { state: Partial<GameState>; sequence: number };
 }
 
 interface ConfigChangeMessage extends Message {
@@ -55,7 +56,7 @@ type GameMessage = GameStateMessage | ConfigChangeMessage | StartGameMessage;
 
 // Context Type
 interface NetworkContextType extends NetworkState {
-  sendGameState: (state: Partial<GameState>) => void;
+  sendGameState: (state: Partial<GameState>, sequence: number) => void;
   sendConfigChange: (config: OrbitConfig) => void;
   startGame: () => void;
   createRoom: () => Promise<void>;
@@ -183,7 +184,18 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
 
       switch (message.type) {
         case "game-state":
-          dispatch({ type: "UPDATE_REMOTE_STATE", payload: message.payload });
+          // Only update if sequence number is higher
+          if (
+            message.payload.sequence > (state.remoteGameState.sequence || 0)
+          ) {
+            dispatch({
+              type: "UPDATE_REMOTE_STATE",
+              payload: {
+                ...message.payload.state,
+                sequence: message.payload.sequence,
+              },
+            });
+          }
           break;
         case "start-game":
           dispatch({ type: "SET_GAME_STARTED", payload: true });
@@ -195,13 +207,13 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [addMessageHandler]);
 
   // Network actions
-  const sendGameState = (gameState: Partial<GameState>) => {
+  const sendGameState = (gameState: Partial<GameState>, sequence: number) => {
     if (state.isMultiplayer && peers.length > 1) {
       const otherPeerId = peers.find((id) => id !== socketId);
       if (otherPeerId) {
         const message: GameStateMessage = {
           type: "game-state",
-          payload: gameState,
+          payload: { state: gameState, sequence },
         };
         sendMessage(otherPeerId, message);
       }

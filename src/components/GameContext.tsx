@@ -4,23 +4,9 @@ import React, {
   useReducer,
   useCallback,
 } from "react";
-import { Board, Player, Position, OrbitConfig, TurnPhase } from "./types";
+import { Board, Player, Position, OrbitConfig, GameState } from "./types";
 import { useNetwork } from "./NetworkContext";
 import { availableConfigs } from "./orbitConfig";
-
-// State interface
-interface GameState {
-  board: Board;
-  currentPlayer: Player;
-  turnPhase: TurnPhase;
-  selectedPiece: Position;
-  winner: Player | null;
-  currentConfig: OrbitConfig;
-  isRotating: boolean;
-  isLifted: boolean;
-  moveOffsets: Record<string, { top: number; left: number }>;
-  disableTransitions: boolean;
-}
 
 // Action types
 type GameAction =
@@ -53,6 +39,7 @@ const initialState: GameState = {
   isLifted: false,
   moveOffsets: {},
   disableTransitions: false,
+  sequence: 0,
 };
 
 // Helper functions
@@ -112,6 +99,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "MOVE_PIECE": {
       if (!action.from || !action.to) return state;
+      console.log("MOVE PIECE", { action });
       const newBoard = state.board.map((row) => [...row]);
       newBoard[action.to[0]][action.to[1]] =
         newBoard[action.from[0]][action.from[1]];
@@ -122,6 +110,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         board: newBoard,
         selectedPiece: null,
         turnPhase: "PLACE_PIECE",
+        sequence: state.sequence + 1,
       };
     }
 
@@ -134,6 +123,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         board: newBoard,
         selectedPiece: null,
         turnPhase: "MUST_ROTATE",
+        sequence: state.sequence + 1,
       };
     }
 
@@ -184,6 +174,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
     case "SYNC_STATE":
+      if (!action.state.sequence || action.state.sequence <= state.sequence) {
+        console.warn("Ignoring SYNC_STATE", {
+          actionSeq: action.state.sequence,
+          localSeq: state.sequence,
+        });
+        return state;
+      }
       return {
         ...state,
         ...action.state,
@@ -304,11 +301,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     dispatch({ type: "END_ROTATION" });
 
     if (isMultiplayer) {
-      sendGameState({
-        board: newBoard,
-        currentPlayer: state.currentPlayer === "BLACK" ? "WHITE" : "BLACK",
-        turnPhase: "MOVE_OPPONENT",
-      });
+      sendGameState(
+        {
+          board: newBoard,
+          currentPlayer: state.currentPlayer === "BLACK" ? "WHITE" : "BLACK",
+          turnPhase: "MOVE_OPPONENT",
+        },
+        state.sequence + 1
+      );
     }
   };
 
@@ -341,11 +341,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
           to: [row, col],
         });
         if (isMultiplayer) {
-          const newBoard = [...state.board];
+          const newBoard = state.board.map((row) => [...row]);
           newBoard[row][col] =
             newBoard[state.selectedPiece[0]][state.selectedPiece[1]];
           newBoard[state.selectedPiece[0]][state.selectedPiece[1]] = null;
-          sendGameState({ board: newBoard, turnPhase: "PLACE_PIECE" });
+          sendGameState(
+            { board: newBoard, turnPhase: "PLACE_PIECE" },
+            state.sequence + 1
+          );
         }
         return;
       }
@@ -353,9 +356,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       if (state.board[row][col] === null && !state.selectedPiece) {
         dispatch({ type: "PLACE_PIECE", position: [row, col] });
         if (isMultiplayer) {
-          const newBoard = [...state.board];
+          const newBoard = state.board.map((row) => [...row]);
           newBoard[row][col] = state.currentPlayer;
-          sendGameState({ board: newBoard, turnPhase: "MUST_ROTATE" });
+          sendGameState(
+            { board: newBoard, turnPhase: "MUST_ROTATE" },
+            state.sequence + 1
+          );
         }
         return;
       }
@@ -364,9 +370,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     if (state.turnPhase === "PLACE_PIECE" && state.board[row][col] === null) {
       dispatch({ type: "PLACE_PIECE", position: [row, col] });
       if (isMultiplayer) {
-        const newBoard = [...state.board];
+        const newBoard = state.board.map((row) => [...row]);
         newBoard[row][col] = state.currentPlayer;
-        sendGameState({ board: newBoard, turnPhase: "MUST_ROTATE" });
+        sendGameState(
+          { board: newBoard, turnPhase: "MUST_ROTATE" },
+          state.sequence + 1
+        );
       }
     }
   };
