@@ -1,5 +1,5 @@
 import React from "react";
-import { Player, Direction } from "./types";
+import { Player, Direction, OrbitConfig } from "./types";
 
 interface OrbitCellProps {
   content: Player | null;
@@ -7,9 +7,9 @@ interface OrbitCellProps {
   isValidMove: boolean;
   arrowDirection?: Direction;
   onClick: () => void;
-  isLifted: boolean;
-  moveOffset?: { top: number; left: number };
-  disableTransition?: boolean;
+  isRotating: boolean;
+  position: [number, number];
+  config: OrbitConfig;
 }
 
 export const OrbitCell: React.FC<OrbitCellProps> = ({
@@ -18,9 +18,9 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
   isValidMove,
   arrowDirection,
   onClick,
-  isLifted,
-  moveOffset,
-  disableTransition,
+  isRotating,
+  position,
+  config,
 }) => {
   const renderArrow = (direction: Direction) => {
     const baseClasses = "absolute w-4 h-4 text-gray-400";
@@ -44,16 +44,30 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
     );
   };
 
-  const getTransform = () => {
-    const transforms = [];
-    if (isLifted) {
-      transforms.push("scale(1.1)");
-      transforms.push("translateY(-8px)");
-    }
-    if (moveOffset) {
-      transforms.push(`translate(${moveOffset.left}px, ${moveOffset.top}px)`);
-    }
-    return transforms.join(" ");
+  const getAnimationStyles = () => {
+    if (!isRotating || !content) return {};
+
+    // Find the next position from the config paths
+    const path = config.paths.find(
+      (p) => p.position[0] === position[0] && p.position[1] === position[1]
+    );
+
+    if (!path) return {};
+
+    // Calculate offsets based on cell size (64px) + gap (16px)
+    const cellUnit = 80; // 64px cell + 16px gap
+    const topOffset = (path.nextPosition[0] - path.position[0]) * cellUnit;
+    const leftOffset = (path.nextPosition[1] - path.position[1]) * cellUnit;
+
+    // Convert pixel offsets to percentage of cell size
+    const topPercent = (topOffset / 64) * 100;
+    const leftPercent = (leftOffset / 64) * 100;
+
+    return {
+      animation: "rotate-piece 1s ease-in-out forwards",
+      "--move-x": `${leftPercent}%`,
+      "--move-y": `${topPercent}%`,
+    } as React.CSSProperties;
   };
 
   return (
@@ -62,11 +76,7 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
         className={`
           absolute top-0 left-0
           w-16 h-16 rounded-full border-2
-          ${
-            !disableTransition
-              ? "transition-transform duration-300 ease-in-out"
-              : ""
-          }
+          [.orbit-rotating_&]:animate-rotate-piece
           ${
             content === "BLACK"
               ? "bg-black"
@@ -81,10 +91,9 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
               ? "border-green-400 border-4"
               : "border-gray-300 hover:border-blue-500"
           }
+          ${isRotating && content ? "z-10" : "z-0"}
         `}
-        style={{
-          transform: getTransform(),
-        }}
+        style={getAnimationStyles()}
         onClick={onClick}
       >
         {content === null && (

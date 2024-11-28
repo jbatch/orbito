@@ -40,3 +40,18 @@
 .read-the-docs {
   color: #888;
 }
+@keyframes rotate-piece {
+  0% {
+    transform: scale(1);
+  }
+  20% {
+    transform: scale(1.1) translateY(-8px);
+  }
+  80% {
+    transform: scale(1.1) translateY(-8px)
+      translate(var(--move-x), var(--move-y));
+  }
+  100% {
+    transform: scale(1) translate(var(--move-x), var(--move-y));
+  }
+}

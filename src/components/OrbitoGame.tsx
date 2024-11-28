@@ -15,9 +15,6 @@ const OrbitoGame: React.FC = () => {
     turnPhase,
     currentConfig,
     isRotating,
-    isLifted,
-    moveOffsets,
-    disableTransitions,
     dispatch,
     isValidMove,
     handleCellClick,
@@ -78,12 +75,10 @@ const OrbitoGame: React.FC = () => {
         <OrbitBoard
           board={board}
           selectedPiece={selectedPiece}
-          isValidMove={isValidMove}
           orbitConfig={currentConfig}
+          isRotating={isRotating}
+          isValidMove={isValidMove}
           onCellClick={handleCellClick}
-          isLifted={isLifted}
-          moveOffsets={moveOffsets}
-          disableTransitions={disableTransitions}
         />
 
         <button

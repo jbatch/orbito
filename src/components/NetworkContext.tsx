@@ -10,6 +10,7 @@ interface GameState {
   turnPhase: TurnPhase;
   selectedPiece: Position;
   winner: Player | null;
+  isRotating: boolean;
   sequence: number;
 }
 
@@ -204,7 +205,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     return () => cleanup();
-  }, [addMessageHandler]);
+  }, [addMessageHandler, state.remoteGameState.sequence]);
 
   // Network actions
   const sendGameState = (gameState: Partial<GameState>, sequence: number) => {

@@ -131,8 +131,28 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         isRotating: true,
+        sequence: state.sequence + 1,
       };
+    case "END_ROTATION": {
+      const newBoard = state.board.map((row) => [...row]);
+      state.currentConfig.paths.forEach((path) => {
+        const [fromRow, fromCol] = path.position;
+        const [toRow, toCol] = path.nextPosition;
+        newBoard[toRow][toCol] = state.board[fromRow][fromCol];
+      });
 
+      const winner = checkWinner(newBoard);
+      return {
+        ...state,
+        board: newBoard,
+        winner,
+        currentPlayer: state.currentPlayer === "BLACK" ? "WHITE" : "BLACK",
+        turnPhase: "MOVE_OPPONENT",
+        selectedPiece: null,
+        isRotating: false,
+        sequence: state.sequence + 1,
+      };
+    }
     case "SET_LIFTED":
       return {
         ...state,
@@ -158,14 +178,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         moveOffsets: {},
       };
     }
-
-    case "END_ROTATION":
-      return {
-        ...state,
-        isRotating: false,
-        isLifted: false,
-        disableTransitions: false,
-      };
 
     case "SET_CONFIG":
       return {
@@ -205,31 +217,11 @@ interface GameContextType extends GameState {
 
 const GameContext = createContext<GameContextType | null>(null);
 
-// Provider
-const CELL_SIZE = 64;
-const GAP_SIZE = 16;
-
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const { isMultiplayer, localPlayer, sendGameState } = useNetwork();
-
-  const calculateMoveOffsets = () => {
-    const offsets: Record<string, { top: number; left: number }> = {};
-
-    state.currentConfig.paths.forEach((path) => {
-      const [fromRow, fromCol] = path.position;
-      const [toRow, toCol] = path.nextPosition;
-
-      const topOffset = (toRow - fromRow) * (CELL_SIZE + GAP_SIZE);
-      const leftOffset = (toCol - fromCol) * (CELL_SIZE + GAP_SIZE);
-
-      offsets[`${fromRow},${fromCol}`] = { top: topOffset, left: leftOffset };
-    });
-
-    return offsets;
-  };
 
   const getValidMoves = useCallback(
     (row: number, col: number): Position[] => {
@@ -276,14 +268,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     dispatch({ type: "START_ROTATION" });
-    dispatch({ type: "SET_LIFTED", isLifted: true });
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const offsets = calculateMoveOffsets();
-    dispatch({ type: "SET_MOVE_OFFSETS", offsets });
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    if (isMultiplayer) {
+      sendGameState({ isRotating: true }, state.sequence + 1);
+    }
 
     const newBoard = state.board.map((row) => [...row]);
     state.currentConfig.paths.forEach((path) => {
@@ -291,25 +278,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       const [toRow, toCol] = path.nextPosition;
       newBoard[toRow][toCol] = state.board[fromRow][fromCol];
     });
-
-    dispatch({ type: "APPLY_ROTATION", newBoard });
-
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    dispatch({ type: "END_ROTATION" });
-
-    if (isMultiplayer) {
-      sendGameState(
-        {
-          board: newBoard,
-          currentPlayer: state.currentPlayer === "BLACK" ? "WHITE" : "BLACK",
-          turnPhase: "MOVE_OPPONENT",
-        },
-        state.sequence + 1
-      );
-    }
   };
 
   const handleCellClick = (row: number, col: number) => {
