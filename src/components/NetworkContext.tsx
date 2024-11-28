@@ -1,7 +1,14 @@
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { Room, useSignaling } from "./useSignaling";
 import { Message, useWebRTC } from "@jbatch/webrtc-client";
-import { Board, Player, Position, TurnPhase, OrbitConfig } from "./types";
+import {
+  Board,
+  Player,
+  Position,
+  TurnPhase,
+  OrbitConfig,
+  MovingState,
+} from "./types";
 
 // State Types
 interface GameState {
@@ -11,6 +18,7 @@ interface GameState {
   selectedPiece: Position;
   winner: Player | null;
   isRotating: boolean;
+  movingState: MovingState | null;
   sequence: number;
 }
 

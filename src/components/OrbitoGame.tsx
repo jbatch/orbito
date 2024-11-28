@@ -11,13 +11,11 @@ const OrbitoGame: React.FC = () => {
     board,
     currentPlayer,
     winner,
-    selectedPiece,
     turnPhase,
     currentConfig,
     isRotating,
     dispatch,
     isValidMove,
-    handleCellClick,
     handleRotate,
   } = useGame();
 
@@ -72,14 +70,7 @@ const OrbitoGame: React.FC = () => {
       </div>
 
       <div className="relative">
-        <OrbitBoard
-          board={board}
-          selectedPiece={selectedPiece}
-          orbitConfig={currentConfig}
-          isRotating={isRotating}
-          isValidMove={isValidMove}
-          onCellClick={handleCellClick}
-        />
+        <OrbitBoard board={board} isValidMove={isValidMove} />
 
         <button
           className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 

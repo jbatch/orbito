@@ -1,15 +1,13 @@
 import React from "react";
-import { Player, Direction, OrbitConfig } from "./types";
+import { Player, Direction } from "./types";
+import { useGame } from "./GameContext";
 
 interface OrbitCellProps {
   content: Player | null;
   isSelected: boolean;
   isValidMove: boolean;
   arrowDirection?: Direction;
-  onClick: () => void;
-  isRotating: boolean;
   position: [number, number];
-  config: OrbitConfig;
 }
 
 export const OrbitCell: React.FC<OrbitCellProps> = ({
@@ -17,11 +15,9 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
   isSelected,
   isValidMove,
   arrowDirection,
-  onClick,
-  isRotating,
   position,
-  config,
 }) => {
+  const { handleCellClick, currentConfig, isRotating, movingState } = useGame();
   const renderArrow = (direction: Direction) => {
     const baseClasses = "absolute w-4 h-4 text-gray-400";
     const positions = {
@@ -44,18 +40,41 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
     );
   };
 
+  const getTargetPosition = () => {
+    if (isRotating) {
+      const path = currentConfig.paths.find(
+        (p) => p.position[0] === position[0] && p.position[1] === position[1]
+      );
+      if (!path) {
+        return null;
+      }
+      return path.nextPosition;
+    }
+
+    if (
+      movingState &&
+      movingState.from[0] == position[0] &&
+      movingState.from[1] == position[1]
+    ) {
+      return movingState.to;
+    }
+    return null;
+  };
+
+  const isMoving =
+    (content && isRotating) ||
+    (movingState &&
+      movingState.from[0] === position[0] &&
+      movingState.from[1] == position[1]);
+
   const getAnimationStyles = () => {
-    if (!isRotating || !content) return {};
-
-    const path = config.paths.find(
-      (p) => p.position[0] === position[0] && p.position[1] === position[1]
-    );
-
-    if (!path) return {};
+    if (!isMoving) return {};
+    const target = getTargetPosition();
+    if (!target) return {};
 
     const cellUnit = 80; // 64px cell + 16px gap
-    const topOffset = (path.nextPosition[0] - path.position[0]) * cellUnit;
-    const leftOffset = (path.nextPosition[1] - path.position[1]) * cellUnit;
+    const topOffset = (target[0] - position[0]) * cellUnit;
+    const leftOffset = (target[1] - position[1]) * cellUnit;
 
     const topPercent = (topOffset / 64) * 100;
     const leftPercent = (leftOffset / 64) * 100;
@@ -71,7 +90,7 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
     <div className="relative w-16 h-16">
       {/* Base cell with empty spot - always visible */}
       <button
-        onClick={onClick}
+        onClick={() => handleCellClick(...position)}
         className={`
           absolute top-0 left-0
           w-16 h-16 rounded-full border-2
@@ -87,24 +106,20 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
       >
         <div className="absolute inset-2 rounded-full bg-gray-300" />
       </button>
-
-      {/* Animated marble layer */}
+      s{/* Animated marble layer */}
       {content && (
         <div
+          onClick={() => handleCellClick(...position)}
           className={`
             absolute top-0 left-0
             w-16 h-16 rounded-full
             ${content === "BLACK" ? "bg-black" : "bg-white"}
-            ${isRotating ? "z-10" : "z-0"}
+            ${isMoving ? "z-10" : "z-0"}
           `}
           style={getAnimationStyles()}
-          onAnimationEnd={(e) => {
-            console.log("Marble end");
-            e.stopPropagation();
-          }}
+          onAnimationEnd={(e) => e.stopPropagation()}
         />
       )}
-
       {arrowDirection && renderArrow(arrowDirection)}
     </div>
   );

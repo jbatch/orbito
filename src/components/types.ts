@@ -19,6 +19,11 @@ export interface OrbitConfigValidationResult {
   errors: string[];
 }
 
+export interface MovingState {
+  from: [number, number];
+  to: [number, number];
+}
+
 export interface GameState {
   board: Board;
   currentPlayer: Player;
@@ -27,8 +32,6 @@ export interface GameState {
   winner: Player | null;
   currentConfig: OrbitConfig;
   isRotating: boolean;
-  isLifted: boolean;
-  moveOffsets: Record<string, { top: number; left: number }>;
-  disableTransitions: boolean;
+  movingState: MovingState | null;
   sequence: number;
 }

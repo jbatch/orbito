@@ -11,15 +11,10 @@ import { availableConfigs } from "./orbitConfig";
 // Action types
 type GameAction =
   | { type: "SELECT_PIECE"; position: Position }
-  | { type: "MOVE_PIECE"; from: Position; to: Position }
+  | { type: "START_MOVE_PIECE"; from: Position; to: Position }
+  | { type: "END_MOVE_PIECE" }
   | { type: "PLACE_PIECE"; position: [number, number] }
   | { type: "START_ROTATION" }
-  | { type: "SET_LIFTED"; isLifted: boolean }
-  | {
-      type: "SET_MOVE_OFFSETS";
-      offsets: Record<string, { top: number; left: number }>;
-    }
-  | { type: "APPLY_ROTATION"; newBoard: Board }
   | { type: "END_ROTATION" }
   | { type: "SET_CONFIG"; config: OrbitConfig }
   | { type: "SYNC_STATE"; state: Partial<GameState> }
@@ -36,9 +31,7 @@ const initialState: GameState = {
   winner: null,
   currentConfig: availableConfigs[0],
   isRotating: false,
-  isLifted: false,
-  moveOffsets: {},
-  disableTransitions: false,
+  movingState: null,
   sequence: 0,
 };
 
@@ -97,18 +90,29 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         selectedPiece: action.position,
       };
 
-    case "MOVE_PIECE": {
+    case "START_MOVE_PIECE": {
       if (!action.from || !action.to) return state;
-      console.log("MOVE PIECE", { action });
+      return {
+        ...state,
+        movingState: { from: action.from, to: action.to },
+        selectedPiece: null,
+        sequence: state.sequence + 1,
+      };
+    }
+
+    case "END_MOVE_PIECE": {
+      if (!state.movingState) {
+        return state;
+      }
       const newBoard = state.board.map((row) => [...row]);
-      newBoard[action.to[0]][action.to[1]] =
-        newBoard[action.from[0]][action.from[1]];
-      newBoard[action.from[0]][action.from[1]] = null;
+      const { from, to } = state.movingState;
+      newBoard[to[0]][to[1]] = newBoard[from[0]][from[1]];
+      newBoard[from[0]][from[1]] = null;
 
       return {
         ...state,
         board: newBoard,
-        selectedPiece: null,
+        movingState: null,
         turnPhase: "PLACE_PIECE",
         sequence: state.sequence + 1,
       };
@@ -151,31 +155,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         selectedPiece: null,
         isRotating: false,
         sequence: state.sequence + 1,
-      };
-    }
-    case "SET_LIFTED":
-      return {
-        ...state,
-        isLifted: action.isLifted,
-      };
-
-    case "SET_MOVE_OFFSETS":
-      return {
-        ...state,
-        moveOffsets: action.offsets,
-      };
-
-    case "APPLY_ROTATION": {
-      const winner = checkWinner(action.newBoard);
-      return {
-        ...state,
-        board: action.newBoard,
-        winner,
-        currentPlayer: state.currentPlayer === "BLACK" ? "WHITE" : "BLACK",
-        turnPhase: "MOVE_OPPONENT",
-        selectedPiece: null,
-        disableTransitions: true,
-        moveOffsets: {},
       };
     }
 
@@ -304,17 +283,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (state.selectedPiece && isValidMove(row, col)) {
         dispatch({
-          type: "MOVE_PIECE",
+          type: "START_MOVE_PIECE",
           from: state.selectedPiece,
           to: [row, col],
         });
+        setTimeout(() => dispatch({ type: "END_MOVE_PIECE" }), 2000);
         if (isMultiplayer) {
           const newBoard = state.board.map((row) => [...row]);
           newBoard[row][col] =
             newBoard[state.selectedPiece[0]][state.selectedPiece[1]];
           newBoard[state.selectedPiece[0]][state.selectedPiece[1]] = null;
           sendGameState(
-            { board: newBoard, turnPhase: "PLACE_PIECE" },
+            { movingState: { from: [...state.selectedPiece], to: [row, col] } },
             state.sequence + 1
           );
         }

@@ -1,31 +1,23 @@
 import React from "react";
 import { OrbitCell } from "./OrbitCell";
-import { Board, Position, Direction, OrbitConfig } from "./types";
+import { Board, Direction } from "./types";
 import { useGame } from "./GameContext";
 
 interface OrbitBoardProps {
   board: Board;
-  selectedPiece: Position;
-  orbitConfig: OrbitConfig;
-  isRotating: boolean;
   isValidMove: (row: number, col: number) => boolean;
-  onCellClick: (row: number, col: number) => void;
 }
 
 export const OrbitBoard: React.FC<OrbitBoardProps> = ({
   board,
-  selectedPiece,
-  orbitConfig,
-  isRotating,
   isValidMove,
-  onCellClick,
 }) => {
-  const { dispatch } = useGame();
+  const { currentConfig, selectedPiece, isRotating, dispatch } = useGame();
   const getArrowDirection = (
     row: number,
     col: number
   ): Direction | undefined => {
-    const path = orbitConfig.paths.find(
+    const path = currentConfig.paths.find(
       (p) => p.position[0] === row && p.position[1] === col
     );
 
@@ -47,8 +39,7 @@ export const OrbitBoard: React.FC<OrbitBoardProps> = ({
       className={`bg-red-600 p-8 rounded-lg shadow-lg  ${
         isRotating ? "animate-rotation-tracker" : ""
       }`}
-      onAnimationEnd={(e) => {
-        console.log("Board end", e);
+      onAnimationEnd={() => {
         dispatch({ type: "END_ROTATION" });
       }}
     >
@@ -64,9 +55,6 @@ export const OrbitBoard: React.FC<OrbitBoardProps> = ({
               }
               isValidMove={isValidMove(rowIndex, colIndex)}
               arrowDirection={getArrowDirection(rowIndex, colIndex)}
-              onClick={() => onCellClick(rowIndex, colIndex)}
-              config={orbitConfig}
-              isRotating={isRotating}
               position={[rowIndex, colIndex]}
             />
           ))
