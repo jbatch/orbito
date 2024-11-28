@@ -47,7 +47,10 @@ export const OrbitBoard: React.FC<OrbitBoardProps> = ({
       className={`bg-red-600 p-8 rounded-lg shadow-lg  ${
         isRotating ? "animate-rotation-tracker" : ""
       }`}
-      onAnimationEnd={() => dispatch({ type: "END_ROTATION" })}
+      onAnimationEnd={(e) => {
+        console.log("Board end", e);
+        dispatch({ type: "END_ROTATION" });
+      }}
     >
       <div className="grid grid-cols-4 gap-4 relative">
         {board.map((row, rowIndex) =>

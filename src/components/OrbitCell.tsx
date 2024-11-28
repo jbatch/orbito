@@ -47,19 +47,16 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
   const getAnimationStyles = () => {
     if (!isRotating || !content) return {};
 
-    // Find the next position from the config paths
     const path = config.paths.find(
       (p) => p.position[0] === position[0] && p.position[1] === position[1]
     );
 
     if (!path) return {};
 
-    // Calculate offsets based on cell size (64px) + gap (16px)
     const cellUnit = 80; // 64px cell + 16px gap
     const topOffset = (path.nextPosition[0] - path.position[0]) * cellUnit;
     const leftOffset = (path.nextPosition[1] - path.position[1]) * cellUnit;
 
-    // Convert pixel offsets to percentage of cell size
     const topPercent = (topOffset / 64) * 100;
     const leftPercent = (leftOffset / 64) * 100;
 
@@ -72,18 +69,13 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
 
   return (
     <div className="relative w-16 h-16">
+      {/* Base cell with empty spot - always visible */}
       <button
+        onClick={onClick}
         className={`
           absolute top-0 left-0
           w-16 h-16 rounded-full border-2
-          [.orbit-rotating_&]:animate-rotate-piece
-          ${
-            content === "BLACK"
-              ? "bg-black"
-              : content === "WHITE"
-              ? "bg-white"
-              : "bg-gray-200"
-          }
+          bg-gray-200
           ${
             isSelected
               ? "border-yellow-400 border-4"
@@ -91,15 +83,28 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
               ? "border-green-400 border-4"
               : "border-gray-300 hover:border-blue-500"
           }
-          ${isRotating && content ? "z-10" : "z-0"}
         `}
-        style={getAnimationStyles()}
-        onClick={onClick}
       >
-        {content === null && (
-          <div className="absolute inset-2 rounded-full bg-gray-300"></div>
-        )}
+        <div className="absolute inset-2 rounded-full bg-gray-300" />
       </button>
+
+      {/* Animated marble layer */}
+      {content && (
+        <div
+          className={`
+            absolute top-0 left-0
+            w-16 h-16 rounded-full
+            ${content === "BLACK" ? "bg-black" : "bg-white"}
+            ${isRotating ? "z-10" : "z-0"}
+          `}
+          style={getAnimationStyles()}
+          onAnimationEnd={(e) => {
+            console.log("Marble end");
+            e.stopPropagation();
+          }}
+        />
+      )}
+
       {arrowDirection && renderArrow(arrowDirection)}
     </div>
   );

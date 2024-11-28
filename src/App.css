@@ -55,3 +55,14 @@
     transform: scale(1) translate(var(--move-x), var(--move-y));
   }
 }
+
+@keyframes rotation-tracker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-rotation-tracker {
+  animation: rotation-tracker 1s ease-in-out;
+}
