@@ -36,7 +36,7 @@ const initialState: GameState = {
 };
 
 // Helper functions
-const checkWinner = (board: Board): Player | null => {
+const checkWinner = (board: Board): Player | "DRAW" | null => {
   // Check rows and columns
   for (let i = 0; i < 4; i++) {
     // Check rows
@@ -56,6 +56,14 @@ const checkWinner = (board: Board): Player | null => {
       board[2][i] === board[3][i]
     ) {
       return board[0][i];
+    }
+
+    // Check for draw - if board is full and no winner
+    const isBoardFull = board.every((row) =>
+      row.every((cell) => cell !== null)
+    );
+    if (isBoardFull) {
+      return "DRAW";
     }
   }
 

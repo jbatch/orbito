@@ -29,7 +29,7 @@ export interface GameState {
   currentPlayer: Player;
   turnPhase: TurnPhase;
   selectedPiece: Position;
-  winner: Player | null;
+  winner: Player | "DRAW" | null;
   currentConfig: OrbitConfig;
   isRotating: boolean;
   movingState: MovingState | null;

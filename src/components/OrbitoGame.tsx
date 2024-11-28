@@ -29,6 +29,7 @@ const OrbitoGame: React.FC = () => {
   };
 
   const getStatusMessage = () => {
+    if (winner === "DRAW") return "Game Over - It's a Draw!";
     if (winner) return `${winner} Wins!`;
 
     const messages = {
