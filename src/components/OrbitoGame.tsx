@@ -4,6 +4,7 @@ import { OrbitBoard } from "./OrbitBoard";
 import { useGame } from "./GameContext";
 import Header from "./Header";
 import { useNetwork } from "./NetworkContext";
+import GameStatus from "./GameStatus";
 
 const OrbitoGame: React.FC = () => {
   const {
@@ -17,37 +18,24 @@ const OrbitoGame: React.FC = () => {
   } = useGame();
   const { isMultiplayer, localPlayer } = useNetwork();
 
-  const getStatusMessage = () => {
-    if (winner === "DRAW") return "Game Over - It's a Draw!";
-    if (winner) return `${winner} Wins!`;
-
-    if (isMultiplayer) {
-      if (currentPlayer != localPlayer) {
-        return `${currentPlayer}'s Turn`;
-      }
-    }
-
-    const currentPlayerName =
-      isMultiplayer && currentPlayer == localPlayer
-        ? "Your"
-        : currentPlayer + "'s";
-    const messages = {
-      MOVE_OPPONENT: `${currentPlayerName} Turn - Optionally move an opponent's piece`,
-      PLACE_PIECE: `${currentPlayerName} Turn - Place your piece`,
-      MUST_ROTATE: `${currentPlayerName} Turn - Press rotate to end turn`,
-    };
-
-    return messages[turnPhase];
-  };
+  const canRotate =
+    turnPhase === "MUST_ROTATE" &&
+    !isRotating &&
+    (!isMultiplayer || currentPlayer === localPlayer);
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <Header />
-
       <main className="flex-1 flex flex-col items-center justify-center p-4">
-        <div className="mb-4 text-xl font-bold text-center">
-          <div>{getStatusMessage()}</div>
-        </div>
+        <GameStatus
+          winner={winner}
+          turnPhase={turnPhase}
+          currentPlayer={currentPlayer}
+          playerStats={{
+            black: { wins: 0, draws: 0 },
+            white: { wins: 0, draws: 0 },
+          }}
+        />
 
         <div className="relative">
           <OrbitBoard board={board} isValidMove={isValidMove} />
@@ -58,12 +46,12 @@ const OrbitoGame: React.FC = () => {
                        flex items-center justify-center
                        transition-colors focus:outline-none shadow-lg
                        ${
-                         turnPhase === "MUST_ROTATE" && !isRotating
+                         canRotate
                            ? "ring-2 ring-blue-300 bg-blue-600 hover:bg-blue-700 cursor-pointer"
                            : "bg-gray-400 cursor-not-allowed"
                        }`}
             onClick={() => handleRotate()}
-            disabled={turnPhase !== "MUST_ROTATE" || isRotating}
+            disabled={!canRotate}
           >
             <RotateCcw className="text-black" size={24} />
           </button>

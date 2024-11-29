@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import { Room, useSignaling } from "./useSignaling";
-import { Message, useWebRTC } from "@jbatch/webrtc-client";
+import { Message, MessageHandler, useWebRTC } from "@jbatch/webrtc-client";
 import {
   Board,
   Player,
@@ -77,6 +77,7 @@ interface NetworkContextType extends NetworkState {
   createRoom: () => Promise<void>;
   joinRoom: (roomId: string) => Promise<void>;
   listRooms: () => Promise<void>;
+  addMessageHandler: (handler: MessageHandler) => () => void;
 }
 
 // Initial State
@@ -99,7 +100,6 @@ function networkReducer(
   state: NetworkState,
   action: NetworkAction
 ): NetworkState {
-  console.log("Action", { action });
   switch (action.type) {
     case "UPDATE_SIGNALING":
       return { ...state, ...action.payload };
@@ -149,7 +149,6 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
     const isHost = socketId === peers[0];
     const localPlayer = isHost ? "BLACK" : "WHITE";
     const isMultiplayer = currentRoom !== null && peers.length > 0;
-    console.log([isConnected, currentRoom, peers, socketId, availableRooms]);
     dispatch({
       type: "UPDATE_SIGNALING",
       payload: {
@@ -195,8 +194,6 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
         console.warn("Received unknown message type:", message.type);
         return;
       }
-
-      console.log("Received message", { message });
 
       switch (message.type) {
         case "game-state":
@@ -313,6 +310,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
     createRoom,
     joinRoom,
     listRooms,
+    addMessageHandler,
   };
 
   return (

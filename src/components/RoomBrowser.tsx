@@ -8,6 +8,7 @@ import RoomInfo from "./RoomInfo";
 import { Button } from "./ui/button";
 import { OrbitConfig } from "./types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Message } from "@jbatch/webrtc-client";
 
 interface RoomBrowserProps {
   isOpen: boolean;
@@ -22,7 +23,6 @@ const RoomBrowser: React.FC<RoomBrowserProps> = ({
   onOpenChange,
   onConfigChange,
 }) => {
-  // console.log("render");
   const [isLoading, setIsLoading] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [tab, setTab] = React.useState<"lobby" | "browse">("browse");
@@ -40,6 +40,7 @@ const RoomBrowser: React.FC<RoomBrowserProps> = ({
     joinRoom,
     listRooms,
     startGame,
+    addMessageHandler,
   } = useNetwork();
 
   const handleRefresh = useCallback(async () => {
@@ -63,6 +64,18 @@ const RoomBrowser: React.FC<RoomBrowserProps> = ({
       });
     }
   }, [error, toast]);
+
+  // Register handler to listen to start-game event
+  useEffect(() => {
+    const messageHandler = (_peerId: string, message: Message) => {
+      if (message.type === "start-game") {
+        onOpenChange(false);
+      }
+    };
+
+    const cleanup = addMessageHandler(messageHandler);
+    return () => cleanup();
+  }, [addMessageHandler, onOpenChange]);
 
   const handleJoinRoom = async (roomId: string) => {
     setIsLoading(true);

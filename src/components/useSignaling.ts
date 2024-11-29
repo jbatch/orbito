@@ -45,7 +45,6 @@ export function useSignaling() {
   // Update state when connection status changes
   const memoPeers = useMemo(() => peers.map((p) => p.id), [peers]);
   useEffect(() => {
-    console.log("UseSignalling");
     setSignalState((prev) => ({
       ...prev,
       isConnected,
