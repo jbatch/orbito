@@ -323,12 +323,24 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
           from: state.selectedPiece,
           to: [row, col],
         });
-        setTimeout(() => dispatch({ type: "END_MOVE_PIECE" }), 1000);
+        setTimeout(() => {
+          dispatch({ type: "END_MOVE_PIECE" });
+          if (isMultiplayer) {
+            const newBoard = state.board.map((row) => [...row]);
+            newBoard[row][col] =
+              newBoard[state.selectedPiece![0]][state.selectedPiece![1]];
+            newBoard[state.selectedPiece![0]][state.selectedPiece![1]] = null;
+            sendGameState(
+              {
+                movingState: null,
+                turnPhase: "PLACE_PIECE",
+                board: newBoard,
+              },
+              state.sequence + 2
+            );
+          }
+        }, 1000);
         if (isMultiplayer) {
-          const newBoard = state.board.map((row) => [...row]);
-          newBoard[row][col] =
-            newBoard[state.selectedPiece[0]][state.selectedPiece[1]];
-          newBoard[state.selectedPiece[0]][state.selectedPiece[1]] = null;
           sendGameState(
             { movingState: { from: [...state.selectedPiece], to: [row, col] } },
             state.sequence + 1
