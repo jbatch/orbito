@@ -42,7 +42,7 @@ const OrbitoGame: React.FC = () => {
 
           <button
             className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                       w-12 h-12 rounded-full border-2 border-black 
+                        w-8 h-8 md:w-12 md:h-12 rounded-full border-2 border-black 
                        flex items-center justify-center
                        transition-colors focus:outline-none shadow-lg
                        ${

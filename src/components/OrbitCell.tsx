@@ -1,3 +1,4 @@
+// OrbitCell.tsx
 import React from "react";
 import { Player, Direction } from "./types";
 import { useGame } from "./GameContext";
@@ -19,12 +20,13 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
 }) => {
   const { handleCellClick, currentConfig, isRotating, movingState } = useGame();
   const renderArrow = (direction: Direction) => {
-    const baseClasses = "absolute w-4 h-4 text-gray-400";
+    const baseClasses = "absolute w-3 h-3 md:w-4 md:h-4 text-gray-400";
     const positions = {
-      right: "right-0 top-1/2 translate-x-4 -translate-y-1/2 rotate-0",
-      down: "bottom-0 left-1/2 -translate-x-1/2 translate-y-4 rotate-90",
-      left: "left-0 top-1/2 -translate-x-4 -translate-y-1/2 rotate-180",
-      up: "top-0 left-1/2 -translate-x-1/2 -translate-y-4 -rotate-90",
+      right:
+        "right-0 top-1/2 translate-x-3 md:translate-x-5 -translate-y-1/2 rotate-0",
+      down: "bottom-0 left-1/2 -translate-x-1/2 translate-y-4 md:translate-y-5 rotate-90",
+      left: "left-0 top-1/2 -translate-x-3 md:-translate-x-5 -translate-y-1/2 rotate-180",
+      up: "top-0 left-1/2 -translate-x-1/2 -translate-y-3 md:-translate-y-5 -rotate-90",
     };
 
     return (
@@ -72,12 +74,13 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
     const target = getTargetPosition();
     if (!target) return {};
 
-    const cellUnit = 80; // 64px cell + 16px gap
+    const cellUnit = window.innerWidth < 768 ? 60 : 80; // Adjust for mobile
     const topOffset = (target[0] - position[0]) * cellUnit;
     const leftOffset = (target[1] - position[1]) * cellUnit;
 
-    const topPercent = (topOffset / 64) * 100;
-    const leftPercent = (leftOffset / 64) * 100;
+    const topPercent = (topOffset / (window.innerWidth < 768 ? 48 : 64)) * 100;
+    const leftPercent =
+      (leftOffset / (window.innerWidth < 768 ? 48 : 64)) * 100;
 
     return {
       animation: "rotate-piece 1s ease-in-out forwards",
@@ -87,13 +90,13 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
   };
 
   return (
-    <div className="relative w-16 h-16">
+    <div className="relative w-12 h-12 md:w-16 md:h-16">
       {/* Base cell with empty spot - always visible */}
       <button
         onClick={() => handleCellClick(...position)}
         className={`
           absolute top-0 left-0
-          w-16 h-16 rounded-full border-2
+          w-12 h-12 md:w-16 md:h-16 rounded-full border-2
           bg-gray-200
           ${
             isSelected
@@ -106,13 +109,14 @@ export const OrbitCell: React.FC<OrbitCellProps> = ({
       >
         <div className="absolute inset-2 rounded-full bg-gray-300" />
       </button>
-      s{/* Animated marble layer */}
+
+      {/* Animated marble layer */}
       {content && (
         <div
           onClick={() => handleCellClick(...position)}
           className={`
             absolute top-0 left-0
-            w-16 h-16 rounded-full
+            w-12 h-12 md:w-16 md:h-16 rounded-full
             ${content === "BLACK" ? "bg-black" : "bg-white"}
             ${isMoving ? "z-10" : "z-0"}
           `}
