@@ -90,47 +90,55 @@ const GameStatus = () => {
   );
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white shadow-sm rounded-lg p-2 md:p-4 mb-8">
-      <div className="flex justify-between items-center">
-        {isMultiplayer ? (
-          <>
-            <PlayerInfo
-              color={localPlayer || "BLACK"}
-              label={`You (${localPlayer})`}
-              id={socketId}
-              stats={localPlayer === "BLACK" ? stats.black : stats.white}
-            />
-            <Status />
-            <PlayerInfo
-              color={localPlayer === "BLACK" ? "WHITE" : "BLACK"}
-              label={`Opponent (${
-                localPlayer === "BLACK" ? "WHITE" : "BLACK"
-              })`}
-              id={opponentId}
-              connected={isConnected}
-              stats={localPlayer === "BLACK" ? stats.white : stats.black}
-            />
-          </>
-        ) : (
-          <>
-            <PlayerInfo color="BLACK" stats={stats.black} label="Black" />
-            <Status />
-            <PlayerInfo color="WHITE" stats={stats.white} label="White" />
-          </>
-        )}
-      </div>
-      {winner && (
-        <div className="flex justify-center">
-          <Button
-            onClick={handleRematch}
-            className="flex items-center gap-2"
-            variant="outline"
-          >
-            <RotateCw className="h-4 w-4" />
-            Rematch ({startingPlayer === "BLACK" ? "White" : "Black"} Starts)
-          </Button>
+    <div className="flex flex-col mb-8 w-full">
+      {/* Fixed height container for the status card */}
+      <div className="w-full max-w-4xl mx-auto min-h-[120px] md:min-h-[140px] bg-white shadow-sm rounded-lg p-2 md:p-4">
+        <div className="flex flex-col h-full">
+          <div className="flex justify-between items-center">
+            {isMultiplayer ? (
+              <>
+                <PlayerInfo
+                  color={localPlayer || "BLACK"}
+                  label={`You (${localPlayer})`}
+                  id={socketId}
+                  stats={localPlayer === "BLACK" ? stats.black : stats.white}
+                />
+                <Status />
+                <PlayerInfo
+                  color={localPlayer === "BLACK" ? "WHITE" : "BLACK"}
+                  label={`Opponent (${
+                    localPlayer === "BLACK" ? "WHITE" : "BLACK"
+                  })`}
+                  id={opponentId}
+                  connected={isConnected}
+                  stats={localPlayer === "BLACK" ? stats.white : stats.black}
+                />
+              </>
+            ) : (
+              <>
+                <PlayerInfo color="BLACK" stats={stats.black} label="Black" />
+                <Status />
+                <PlayerInfo color="WHITE" stats={stats.white} label="White" />
+              </>
+            )}
+          </div>
+          {winner && (
+            <div className="flex justify-center mt-4">
+              <Button
+                onClick={handleRematch}
+                className="flex items-center gap-2"
+                variant="outline"
+              >
+                <RotateCw className="h-4 w-4" />
+                Rematch ({startingPlayer === "BLACK" ? "White" : "Black"}{" "}
+                Starts)
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
+      {/* Flexible spacer that can shrink */}
+      <div className="flex-1 min-h-0" />
     </div>
   );
 };
