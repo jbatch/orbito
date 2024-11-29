@@ -24,6 +24,16 @@ export interface MovingState {
   to: [number, number];
 }
 
+interface PlayerStats {
+  wins: number;
+  draws: number;
+}
+
+export interface GameStats {
+  black: PlayerStats;
+  white: PlayerStats;
+}
+
 export interface GameState {
   board: Board;
   currentPlayer: Player;
@@ -34,4 +44,6 @@ export interface GameState {
   isRotating: boolean;
   movingState: MovingState | null;
   sequence: number;
+  stats: GameStats;
+  startingPlayer: Player;
 }

@@ -1,20 +1,8 @@
+import { RotateCw } from "lucide-react";
 import { useNetwork } from "./NetworkContext";
-import { Player, TurnPhase } from "./types";
-
-interface Stats {
-  wins: number;
-  draws: number;
-}
-
-interface GameStatusProps {
-  turnPhase: TurnPhase;
-  currentPlayer: "BLACK" | "WHITE";
-  winner: Player | "DRAW" | null;
-  playerStats?: {
-    black: Stats;
-    white: Stats;
-  };
-}
+import { Button } from "./ui/button";
+import { useGame } from "./GameContext";
+import { GameStats } from "./types";
 
 const PlayerInfo = ({
   color,
@@ -24,7 +12,7 @@ const PlayerInfo = ({
   connected,
 }: {
   color: "BLACK" | "WHITE";
-  stats?: Stats;
+  stats?: GameStats["black"];
   label: string;
   id?: string;
   connected?: boolean;
@@ -32,13 +20,14 @@ const PlayerInfo = ({
   <div className="flex items-center space-x-1 md:space-x-2">
     <div>
       <div className="text-xs md:text-sm text-gray-600">{label}</div>
-      {stats ? (
+      {stats && (
         <div className="text-xs md:text-base font-medium whitespace-nowrap">
           <span className="inline-flex">Wins: {stats.wins}</span>
           <span className="text-gray-400 mx-1 md:mx-2">•</span>
           <span className="inline-flex">Draws: {stats.draws}</span>
         </div>
-      ) : (
+      )}
+      {id && (
         <div className="text-xs md:text-base font-medium flex items-center gap-1 md:gap-2">
           {id}
           {connected !== undefined && (
@@ -59,12 +48,15 @@ const PlayerInfo = ({
   </div>
 );
 
-const GameStatus = ({
-  turnPhase,
-  currentPlayer,
-  playerStats,
-  winner,
-}: GameStatusProps) => {
+const GameStatus = () => {
+  const {
+    startingPlayer,
+    winner,
+    currentPlayer,
+    turnPhase,
+    stats,
+    handleRematch,
+  } = useGame();
   const { isMultiplayer, localPlayer, peers, socketId } = useNetwork();
 
   const getStatusMessage = () => {
@@ -86,9 +78,11 @@ const GameStatus = ({
 
   const Status = () => (
     <div className="flex flex-col text-center px-1">
-      <div className="text-sm md:text-lg font-medium text-gray-700">
-        {currentPlayer}'s Turn
-      </div>
+      {!winner && (
+        <div className="text-sm md:text-lg font-medium text-gray-700">
+          {currentPlayer}'s Turn
+        </div>
+      )}
       <div className="text-xs md:text-lg font-medium text-gray-700">
         {getStatusMessage()}
       </div>
@@ -104,6 +98,7 @@ const GameStatus = ({
               color={localPlayer || "BLACK"}
               label={`You (${localPlayer})`}
               id={socketId}
+              stats={localPlayer === "BLACK" ? stats.black : stats.white}
             />
             <Status />
             <PlayerInfo
@@ -113,24 +108,29 @@ const GameStatus = ({
               })`}
               id={opponentId}
               connected={isConnected}
+              stats={localPlayer === "BLACK" ? stats.white : stats.black}
             />
           </>
         ) : (
           <>
-            <PlayerInfo
-              color="BLACK"
-              stats={playerStats?.black}
-              label="Black"
-            />
+            <PlayerInfo color="BLACK" stats={stats.black} label="Black" />
             <Status />
-            <PlayerInfo
-              color="WHITE"
-              stats={playerStats?.white}
-              label="White"
-            />
+            <PlayerInfo color="WHITE" stats={stats.white} label="White" />
           </>
         )}
       </div>
+      {winner && (
+        <div className="flex justify-center">
+          <Button
+            onClick={handleRematch}
+            className="flex items-center gap-2"
+            variant="outline"
+          >
+            <RotateCw className="h-4 w-4" />
+            Rematch ({startingPlayer === "BLACK" ? "White" : "Black"} Starts)
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

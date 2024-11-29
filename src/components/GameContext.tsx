@@ -18,7 +18,8 @@ type GameAction =
   | { type: "END_ROTATION" }
   | { type: "SET_CONFIG"; config: OrbitConfig }
   | { type: "SYNC_STATE"; state: Partial<GameState> }
-  | { type: "RESET_GAME" };
+  | { type: "RESET_GAME" }
+  | { type: "REMATCH" };
 
 // Initial state
 const initialState: GameState = {
@@ -33,6 +34,11 @@ const initialState: GameState = {
   isRotating: false,
   movingState: null,
   sequence: 0,
+  stats: {
+    black: { wins: 0, draws: 0 },
+    white: { wins: 0, draws: 0 },
+  },
+  startingPlayer: "BLACK",
 };
 
 // Helper functions
@@ -154,6 +160,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       });
 
       const winner = checkWinner(newBoard);
+      const newStats = structuredClone(state.stats);
+      if (winner === "DRAW") {
+        newStats.black.draws++;
+        newStats.white.draws++;
+      } else if (winner === "BLACK") {
+        newStats.black.wins++;
+      } else if (winner === "WHITE") {
+        newStats.white.wins++;
+      }
       return {
         ...state,
         board: newBoard,
@@ -163,6 +178,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         selectedPiece: null,
         isRotating: false,
         sequence: state.sequence + 1,
+        stats: newStats,
       };
     }
 
@@ -188,6 +204,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case "RESET_GAME":
       return initialState;
 
+    case "REMATCH":
+      return {
+        ...initialState,
+        stats: state.stats,
+        startingPlayer: state.startingPlayer === "BLACK" ? "WHITE" : "BLACK",
+        currentPlayer: state.startingPlayer === "BLACK" ? "WHITE" : "BLACK",
+        currentConfig: state.currentConfig,
+        winner: null,
+        sequence: state.sequence + 1,
+      };
+
     default:
       return state;
   }
@@ -200,6 +227,7 @@ interface GameContextType extends GameState {
   getValidMoves: (row: number, col: number) => Position[];
   handleCellClick: (row: number, col: number) => void;
   handleRotate: () => Promise<void>;
+  handleRematch: () => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -336,6 +364,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const handleRematch = () => {
+    dispatch({ type: "REMATCH" });
+    if (isMultiplayer) {
+      sendGameState(
+        {
+          ...initialState,
+          stats: state.stats,
+          startingPlayer: state.startingPlayer === "BLACK" ? "WHITE" : "BLACK",
+          currentPlayer: state.startingPlayer === "BLACK" ? "WHITE" : "BLACK",
+        },
+        state.sequence + 1
+      );
+    }
+  };
+
   const value = {
     ...state,
     dispatch,
@@ -343,6 +386,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     getValidMoves,
     handleCellClick,
     handleRotate,
+    handleRematch,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

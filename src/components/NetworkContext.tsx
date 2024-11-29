@@ -14,6 +14,7 @@ import {
   TurnPhase,
   OrbitConfig,
   MovingState,
+  GameStats,
 } from "./types";
 
 // State Types
@@ -26,6 +27,8 @@ interface GameState {
   isRotating: boolean;
   movingState: MovingState | null;
   sequence: number;
+  startingPlayer: Player;
+  stats: GameStats;
 }
 
 interface NetworkState {

@@ -10,7 +10,6 @@ const OrbitoGame: React.FC = () => {
   const {
     board,
     currentPlayer,
-    winner,
     turnPhase,
     isRotating,
     isValidMove,
@@ -27,15 +26,7 @@ const OrbitoGame: React.FC = () => {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <Header />
       <main className="flex-1 flex flex-col items-center justify-center p-4">
-        <GameStatus
-          winner={winner}
-          turnPhase={turnPhase}
-          currentPlayer={currentPlayer}
-          playerStats={{
-            black: { wins: 0, draws: 0 },
-            white: { wins: 0, draws: 0 },
-          }}
-        />
+        <GameStatus />
 
         <div className="relative">
           <OrbitBoard board={board} isValidMove={isValidMove} />
