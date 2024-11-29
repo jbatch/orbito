@@ -3,6 +3,7 @@ import { RotateCcw } from "lucide-react";
 import { OrbitBoard } from "./OrbitBoard";
 import { useGame } from "./GameContext";
 import Header from "./Header";
+import { useNetwork } from "./NetworkContext";
 
 const OrbitoGame: React.FC = () => {
   const {
@@ -14,15 +15,26 @@ const OrbitoGame: React.FC = () => {
     isValidMove,
     handleRotate,
   } = useGame();
+  const { isMultiplayer, localPlayer } = useNetwork();
 
   const getStatusMessage = () => {
     if (winner === "DRAW") return "Game Over - It's a Draw!";
     if (winner) return `${winner} Wins!`;
 
+    if (isMultiplayer) {
+      if (currentPlayer != localPlayer) {
+        return `${currentPlayer}'s Turn`;
+      }
+    }
+
+    const currentPlayerName =
+      isMultiplayer && currentPlayer == localPlayer
+        ? "Your"
+        : currentPlayer + "'s";
     const messages = {
-      MOVE_OPPONENT: `${currentPlayer}'s Turn - Optionally move an opponent's piece`,
-      PLACE_PIECE: `${currentPlayer}'s Turn - Place your piece`,
-      MUST_ROTATE: `${currentPlayer}'s Turn - Press rotate to end turn`,
+      MOVE_OPPONENT: `${currentPlayerName} Turn - Optionally move an opponent's piece`,
+      PLACE_PIECE: `${currentPlayerName} Turn - Place your piece`,
+      MUST_ROTATE: `${currentPlayerName} Turn - Press rotate to end turn`,
     };
 
     return messages[turnPhase];

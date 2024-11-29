@@ -186,7 +186,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Set up message handler
   useEffect(() => {
-    const messageHandler = (peerId: string, message: Message) => {
+    const messageHandler = (_peerId: string, message: Message) => {
       const isGameMessage = (msg: Message): msg is GameMessage => {
         return ["game-state", "config-change", "start-game"].includes(msg.type);
       };

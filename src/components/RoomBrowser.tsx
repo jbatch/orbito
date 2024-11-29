@@ -25,6 +25,7 @@ const RoomBrowser: React.FC<RoomBrowserProps> = ({
   // console.log("render");
   const [isLoading, setIsLoading] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const [tab, setTab] = React.useState<"lobby" | "browse">("browse");
   const { toast } = useToast();
 
   const {
@@ -42,14 +43,12 @@ const RoomBrowser: React.FC<RoomBrowserProps> = ({
   } = useNetwork();
 
   const handleRefresh = useCallback(async () => {
-    console.log("Handle refresh");
     setIsLoading(true);
     await listRooms();
     setIsLoading(false);
   }, [listRooms]);
 
   useEffect(() => {
-    console.log("handleRefresh - useEffect");
     if (isOpen && isConnected && !currentRoom) {
       handleRefresh();
     }
@@ -68,12 +67,14 @@ const RoomBrowser: React.FC<RoomBrowserProps> = ({
   const handleJoinRoom = async (roomId: string) => {
     setIsLoading(true);
     await joinRoom(roomId);
+    setTab("lobby");
     setIsLoading(false);
   };
 
   const handleCreateRoom = async () => {
     setIsLoading(true);
     await createRoom();
+    setTab("lobby");
     setIsLoading(false);
   };
 
@@ -93,12 +94,22 @@ const RoomBrowser: React.FC<RoomBrowserProps> = ({
   const canStartGame = peers.length === 2;
 
   return (
-    <Tabs defaultValue={currentRoom ? "lobby" : "browse"}>
+    <Tabs value={tab} defaultValue={currentRoom ? "lobby" : "browse"}>
       <TabsList className="w-full">
-        <TabsTrigger value="browse" className="flex-1" disabled={!isConnected}>
+        <TabsTrigger
+          value="browse"
+          className="flex-1"
+          disabled={!isConnected}
+          onClick={() => setTab("browse")}
+        >
           Browse Games
         </TabsTrigger>
-        <TabsTrigger value="lobby" className="flex-1" disabled={!currentRoom}>
+        <TabsTrigger
+          value="lobby"
+          className="flex-1"
+          disabled={!currentRoom}
+          onClick={() => setTab("lobby")}
+        >
           Game Lobby
         </TabsTrigger>
       </TabsList>

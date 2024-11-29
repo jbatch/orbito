@@ -295,7 +295,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
           from: state.selectedPiece,
           to: [row, col],
         });
-        setTimeout(() => dispatch({ type: "END_MOVE_PIECE" }), 2000);
+        setTimeout(() => dispatch({ type: "END_MOVE_PIECE" }), 1000);
         if (isMultiplayer) {
           const newBoard = state.board.map((row) => [...row]);
           newBoard[row][col] =
