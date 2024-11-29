@@ -1,42 +1,28 @@
-import React, { useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Loader2, RefreshCw, Users, Copy, Check, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { availableConfigs } from "./orbitConfig";
-import { OrbitConfig } from "./types";
+import React, { useCallback, useEffect } from "react";
+import GameBrowser from "./GameBrowser";
+import GameSettings from "./GameSettings";
 import { useNetwork } from "./NetworkContext";
+import PlayerList from "./PlayerList";
+import RoomInfo from "./RoomInfo";
+import { Button } from "./ui/button";
+import { OrbitConfig } from "./types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 
-const RoomBrowser = ({
-  currentConfig,
-  onConfigChange,
-}: {
+interface RoomBrowserProps {
+  isOpen: boolean;
   currentConfig: OrbitConfig;
+  onOpenChange: (open: boolean) => void;
   onConfigChange: (config: OrbitConfig) => void;
+}
+
+const RoomBrowser: React.FC<RoomBrowserProps> = ({
+  isOpen,
+  currentConfig,
+  onOpenChange,
+  onConfigChange,
 }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
+  // console.log("render");
   const [isLoading, setIsLoading] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const { toast } = useToast();
@@ -56,12 +42,14 @@ const RoomBrowser = ({
   } = useNetwork();
 
   const handleRefresh = useCallback(async () => {
+    console.log("Handle refresh");
     setIsLoading(true);
     await listRooms();
     setIsLoading(false);
   }, [listRooms]);
 
   useEffect(() => {
+    console.log("handleRefresh - useEffect");
     if (isOpen && isConnected && !currentRoom) {
       handleRefresh();
     }
@@ -98,252 +86,68 @@ const RoomBrowser = ({
   };
 
   const handleStartGame = () => {
-    console.log("Starting game...");
     startGame();
-    setIsOpen(false);
+    onOpenChange(false);
   };
-
-  const ConnectionStatus = () => (
-    <div className="flex items-center gap-2">
-      <div
-        className={`w-2 h-2 rounded-full ${
-          isConnected ? "bg-green-500" : "bg-red-500"
-        }`}
-      />
-      <span className="text-sm text-muted-foreground">
-        {isConnected ? "Connected" : "Disconnected"}
-      </span>
-    </div>
-  );
 
   const canStartGame = peers.length === 2;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <Users className="w-4 h-4 mr-2" />
-          {currentRoom ? "Game Lobby" : "Join Game"}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Orbito Multiplayer</DialogTitle>
-            <ConnectionStatus />
-          </div>
-        </DialogHeader>
+    <Tabs defaultValue={currentRoom ? "lobby" : "browse"}>
+      <TabsList className="w-full">
+        <TabsTrigger value="browse" className="flex-1" disabled={!isConnected}>
+          Browse Games
+        </TabsTrigger>
+        <TabsTrigger value="lobby" className="flex-1" disabled={!currentRoom}>
+          Game Lobby
+        </TabsTrigger>
+      </TabsList>
 
-        <Tabs defaultValue={currentRoom ? "lobby" : "browse"}>
-          <TabsList className="w-full">
-            <TabsTrigger
-              value="browse"
-              className="flex-1"
-              disabled={!isConnected}
-            >
-              Browse Games
-            </TabsTrigger>
-            <TabsTrigger
-              value="lobby"
-              className="flex-1"
-              disabled={!currentRoom}
-            >
-              Game Lobby
-            </TabsTrigger>
-          </TabsList>
+      <TabsContent value="browse" className="mt-4">
+        <GameBrowser
+          isConnected={isConnected}
+          isLoading={isLoading}
+          availableRooms={availableRooms}
+          onRefresh={handleRefresh}
+          onCreateRoom={handleCreateRoom}
+          onJoinRoom={handleJoinRoom}
+        />
+      </TabsContent>
 
-          <TabsContent value="browse" className="mt-4">
-            <div className="flex justify-between items-center mb-4">
+      <TabsContent value="lobby">
+        {currentRoom && (
+          <div className="space-y-4">
+            <RoomInfo
+              roomId={currentRoom}
+              onCopy={handleCopyRoomId}
+              copied={copied}
+            />
+            <PlayerList
+              peers={peers}
+              socketId={socketId}
+              canStartGame={canStartGame}
+            />
+            <GameSettings
+              currentConfig={currentConfig}
+              onConfigChange={onConfigChange}
+              isHost={isHost}
+            />
+            <div className="flex justify-end">
               <Button
-                onClick={handleCreateRoom}
-                variant="default"
-                disabled={!isConnected || isLoading}
+                onClick={handleStartGame}
+                disabled={!canStartGame || !isHost}
               >
-                Create New Room
-              </Button>
-              <Button
-                onClick={handleRefresh}
-                variant="outline"
-                disabled={!isConnected || isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                )}
-                Refresh
+                {!canStartGame
+                  ? "Waiting for Players..."
+                  : !isHost
+                  ? "Waiting for Host..."
+                  : "Start Game"}
               </Button>
             </div>
-
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Room ID</TableHead>
-                  <TableHead>Players</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {availableRooms.map((room) => (
-                  <TableRow key={room.id}>
-                    <TableCell className="font-medium">{room.id}</TableCell>
-                    <TableCell>
-                      {room.playerCount} / {room.maxPlayers}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(room.createdAt).toLocaleTimeString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        onClick={() => handleJoinRoom(room.id)}
-                        disabled={
-                          !isConnected ||
-                          isLoading ||
-                          room.playerCount >= room.maxPlayers
-                        }
-                      >
-                        Join
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {availableRooms.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-muted-foreground h-24"
-                    >
-                      {isConnected
-                        ? "No active rooms found"
-                        : "Connecting to server..."}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TabsContent>
-
-          <TabsContent value="lobby">
-            {currentRoom && (
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Room Information</CardTitle>
-                    <CardDescription>
-                      Share this room ID with your friend to play together
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center">
-                      <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold">
-                        {currentRoom}
-                      </code>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCopyRoomId}
-                      >
-                        {copied ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Players</CardTitle>
-                    <CardDescription>
-                      {canStartGame
-                        ? "All players have joined!"
-                        : "Waiting for opponent to join..."}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {peers.map((peer, index) => (
-                        <div
-                          key={peer}
-                          className="flex items-center justify-between p-2 rounded bg-muted"
-                        >
-                          <div className="flex items-center gap-2">
-                            {index === 0 && (
-                              <Crown className="h-4 w-4 text-yellow-500" />
-                            )}
-                            <span>
-                              Player {index + 1}
-                              {peer === socketId ? " (You)" : ""}
-                            </span>
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            {index === 0 ? "Host" : "Guest"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Game Settings</CardTitle>
-                    <CardDescription>
-                      Configure the game before starting
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        Board Configuration
-                      </label>
-                      <select
-                        className="w-full p-2 border rounded"
-                        value={currentConfig.name}
-                        onChange={(e) => {
-                          const newConfig = availableConfigs.find(
-                            (c) => c.name === e.target.value
-                          );
-                          if (newConfig) onConfigChange(newConfig);
-                        }}
-                        disabled={!isHost}
-                      >
-                        {availableConfigs.map((config) => (
-                          <option key={config.name} value={config.name}>
-                            {config.name}
-                          </option>
-                        ))}
-                      </select>
-                      {!isHost && (
-                        <p className="text-sm text-muted-foreground">
-                          Only the host can change game settings
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleStartGame}
-                    disabled={!canStartGame || !isHost}
-                  >
-                    {!canStartGame
-                      ? "Waiting for Players..."
-                      : !isHost
-                      ? "Waiting for Host..."
-                      : "Start Game"}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+          </div>
+        )}
+      </TabsContent>
+    </Tabs>
   );
 };
 

@@ -1,5 +1,5 @@
 import { useSignaling as useWebRTCSignaling } from "@jbatch/webrtc-client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 
 const SIGNALING_SERVER = "https://p2p.jbat.ch";
 
@@ -43,19 +43,21 @@ export function useSignaling() {
   });
 
   // Update state when connection status changes
+  const memoPeers = useMemo(() => peers.map((p) => p.id), [peers]);
   useEffect(() => {
+    console.log("UseSignalling");
     setSignalState((prev) => ({
       ...prev,
       isConnected,
       currentRoom,
-      peers: peers.map((p) => p.id),
+      peers: memoPeers,
       availableRooms,
       error,
       socketId,
     }));
-  }, [isConnected, currentRoom, peers, availableRooms, error, socketId]);
+  }, [isConnected, currentRoom, memoPeers, availableRooms, error, socketId]);
 
-  const handleCreateRoom = async () => {
+  const handleCreateRoom = useCallback(async () => {
     try {
       await createRoom("orbito", 2); // Max 2 players per room
     } catch (err) {
@@ -64,20 +66,23 @@ export function useSignaling() {
         error: err instanceof Error ? err.message : "Failed to create room",
       }));
     }
-  };
+  }, [createRoom]);
 
-  const handleJoinRoom = async (roomId: string) => {
-    try {
-      await joinRoom(roomId);
-    } catch (err) {
-      setSignalState((prev) => ({
-        ...prev,
-        error: err instanceof Error ? err.message : "Failed to join room",
-      }));
-    }
-  };
+  const handleJoinRoom = useCallback(
+    async (roomId: string) => {
+      try {
+        await joinRoom(roomId);
+      } catch (err) {
+        setSignalState((prev) => ({
+          ...prev,
+          error: err instanceof Error ? err.message : "Failed to join room",
+        }));
+      }
+    },
+    [joinRoom]
+  );
 
-  const handleListRooms = async () => {
+  const handleListRooms = useCallback(async () => {
     try {
       await listRooms("orbito");
     } catch (err) {
@@ -86,7 +91,7 @@ export function useSignaling() {
         error: err instanceof Error ? err.message : "Failed to list rooms",
       }));
     }
-  };
+  }, [listRooms]);
 
   return {
     ...signalState,

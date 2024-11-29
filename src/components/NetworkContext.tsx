@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useReducer, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useCallback,
+} from "react";
 import { Room, useSignaling } from "./useSignaling";
 import { Message, useWebRTC } from "@jbatch/webrtc-client";
 import {
@@ -93,6 +99,7 @@ function networkReducer(
   state: NetworkState,
   action: NetworkAction
 ): NetworkState {
+  console.log("Action", { action });
   switch (action.type) {
     case "UPDATE_SIGNALING":
       return { ...state, ...action.payload };
@@ -142,7 +149,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
     const isHost = socketId === peers[0];
     const localPlayer = isHost ? "BLACK" : "WHITE";
     const isMultiplayer = currentRoom !== null && peers.length > 0;
-
+    console.log([isConnected, currentRoom, peers, socketId, availableRooms]);
     dispatch({
       type: "UPDATE_SIGNALING",
       payload: {
@@ -179,7 +186,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Set up message handler
   useEffect(() => {
-    const cleanup = addMessageHandler((_peerId: string, message: Message) => {
+    const messageHandler = (peerId: string, message: Message) => {
       const isGameMessage = (msg: Message): msg is GameMessage => {
         return ["game-state", "config-change", "start-game"].includes(msg.type);
       };
@@ -193,7 +200,6 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
 
       switch (message.type) {
         case "game-state":
-          // Only update if sequence number is higher
           if (
             message.payload.sequence > (state.remoteGameState.sequence || 0)
           ) {
@@ -210,39 +216,46 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
           dispatch({ type: "SET_GAME_STARTED", payload: true });
           break;
       }
-    });
+    };
 
+    const cleanup = addMessageHandler(messageHandler);
     return () => cleanup();
   }, [addMessageHandler, state.remoteGameState.sequence]);
 
   // Network actions
-  const sendGameState = (gameState: Partial<GameState>, sequence: number) => {
-    if (state.isMultiplayer && peers.length > 1) {
-      const otherPeerId = peers.find((id) => id !== socketId);
-      if (otherPeerId) {
-        const message: GameStateMessage = {
-          type: "game-state",
-          payload: { state: gameState, sequence },
-        };
-        sendMessage(otherPeerId, message);
+  const sendGameState = useCallback(
+    (gameState: Partial<GameState>, sequence: number) => {
+      if (state.isMultiplayer && peers.length > 1) {
+        const otherPeerId = peers.find((id) => id !== socketId);
+        if (otherPeerId) {
+          const message: GameStateMessage = {
+            type: "game-state",
+            payload: { state: gameState, sequence },
+          };
+          sendMessage(otherPeerId, message);
+        }
       }
-    }
-  };
+    },
+    [state.isMultiplayer, peers, socketId, sendMessage]
+  );
 
-  const sendConfigChange = (config: OrbitConfig) => {
-    if (state.isMultiplayer && peers.length > 1) {
-      const otherPeerId = peers.find((id) => id !== socketId);
-      if (otherPeerId) {
-        const message: ConfigChangeMessage = {
-          type: "config-change",
-          payload: { config },
-        };
-        sendMessage(otherPeerId, message);
+  const sendConfigChange = useCallback(
+    (config: OrbitConfig) => {
+      if (state.isMultiplayer && peers.length > 1) {
+        const otherPeerId = peers.find((id) => id !== socketId);
+        if (otherPeerId) {
+          const message: ConfigChangeMessage = {
+            type: "config-change",
+            payload: { config },
+          };
+          sendMessage(otherPeerId, message);
+        }
       }
-    }
-  };
+    },
+    [peers, sendMessage, socketId, state.isMultiplayer]
+  );
 
-  const startGame = () => {
+  const startGame = useCallback(() => {
     if (state.isMultiplayer && peers.length > 1) {
       const otherPeerId = peers.find((id) => id !== socketId);
       if (otherPeerId) {
@@ -254,9 +267,9 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       dispatch({ type: "SET_GAME_STARTED", payload: true });
     }
-  };
+  }, [state.isMultiplayer, peers, socketId, sendMessage]);
 
-  const createRoom = async () => {
+  const createRoom = useCallback(async () => {
     try {
       await signalingCreateRoom();
     } catch (err) {
@@ -265,20 +278,23 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
         payload: err instanceof Error ? err.message : "Failed to create room",
       });
     }
-  };
+  }, [signalingCreateRoom]);
 
-  const joinRoom = async (roomId: string) => {
-    try {
-      await signalingJoinRoom(roomId);
-    } catch (err) {
-      dispatch({
-        type: "SET_ERROR",
-        payload: err instanceof Error ? err.message : "Failed to join room",
-      });
-    }
-  };
+  const joinRoom = useCallback(
+    async (roomId: string) => {
+      try {
+        await signalingJoinRoom(roomId);
+      } catch (err) {
+        dispatch({
+          type: "SET_ERROR",
+          payload: err instanceof Error ? err.message : "Failed to join room",
+        });
+      }
+    },
+    [signalingJoinRoom]
+  );
 
-  const listRooms = async () => {
+  const listRooms = useCallback(async () => {
     try {
       await signalingListRooms();
     } catch (err) {
@@ -287,7 +303,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
         payload: err instanceof Error ? err.message : "Failed to list rooms",
       });
     }
-  };
+  }, [signalingListRooms]);
 
   const value = {
     ...state,
